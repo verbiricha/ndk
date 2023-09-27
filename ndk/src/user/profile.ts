@@ -68,7 +68,7 @@ export function profileFromEvent(event: NDKEvent): NDKUserProfile {
 }
 
 export function serializeProfile(profile: NDKUserProfile): string {
-    const payload: any = {};
+    const payload: Record<string, string | undefined> = {};
 
     // Remap some keys from bad clients into good ones per NIP-24
     for (const [key, val] of Object.entries(profile)) {

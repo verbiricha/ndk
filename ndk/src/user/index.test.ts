@@ -11,6 +11,16 @@ jest.mock("nostr-tools", () => ({
         npubEncode: jest.fn().mockImplementation(() => "npub1_encoded_npub"),
         decode: jest.fn().mockReturnValue({ type: "npub", data: "decoded_hexpubkey" }),
     },
+    nip05: {
+        queryProfile: jest.fn().mockImplementation((address: string) => {
+            return Promise.resolve({
+                pubkey:
+                    address === "_@jeffg.fyi"
+                        ? "1739d937dc8c0c7370aa27585938c119e25c41f6c441a5d34c6d38503e3136ef"
+                        : "fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52",
+            });
+        }),
+    },
 }));
 
 describe("NDKUser", () => {
@@ -90,7 +100,7 @@ describe("NDKUser", () => {
                 tags: [],
                 created_at: Date.now() / 1000 - 3600,
                 content: JSON.stringify({
-                    displayName: "JeffG",
+                    display_name: "JeffG",
                     name: "Jeff",
                     image: "https://image.url",
                     banner: "https://banner.url",
@@ -109,7 +119,7 @@ describe("NDKUser", () => {
                 tags: [],
                 created_at: Date.now() / 1000 - 7200,
                 content: JSON.stringify({
-                    displayName: "JeffG_OLD",
+                    display_name: "JeffG_OLD",
                     name: "Jeff_OLD",
                     image: "https://image.url.old",
                     banner: "https://banner.url.old",
@@ -145,45 +155,6 @@ describe("NDKUser", () => {
             expect(user.profile?.lud16).toEqual("lud16value");
             expect(user.profile?.about).toEqual("About jeff");
             expect(user.profile?.zapService).toEqual("Zapservice details");
-        });
-
-        // Both "display_name" and "displayName" are set to "displayName" field in the user profile
-        it("Display name is set properly", async () => {
-            newEvent = new NDKEvent(ndk, {
-                kind: 0,
-                pubkey: pubkey,
-                tags: [],
-                created_at: Date.now() / 1000 - 3600,
-                content: JSON.stringify({
-                    displayName: "JeffG",
-                    display_name: "James",
-                }),
-            });
-
-            oldEvent = new NDKEvent(ndk, {
-                kind: 0,
-                pubkey: pubkey,
-                tags: [],
-                created_at: Date.now() / 1000 - 7200,
-                content: JSON.stringify({
-                    displayName: "Bob",
-                }),
-            });
-
-            ndk.subscribe = jest.fn((filter, opts?): NDKSubscription => {
-                const sub = new NDKSubscription(ndk, filter, opts);
-
-                setTimeout(() => {
-                    sub.emit("event", newEvent);
-                    sub.emit("event", oldEvent);
-                    sub.emit("eose");
-                }, 100);
-
-                return sub;
-            });
-
-            await user.fetchProfile();
-            expect(user.profile?.displayName).toEqual("JeffG");
         });
 
         // Both "image" and "picture" are set to the "image" field in the user profile
@@ -271,11 +242,9 @@ describe("NDKUser", () => {
 
             const validNip05 = "_@jeffg.fyi";
             const invalidNip05 = "_@f7z.io";
-            const randomNip05 = "bobby@globalhypermeganet.com";
 
             expect(await user.validateNip05(validNip05)).toEqual(true);
             expect(await user.validateNip05(invalidNip05)).toEqual(false);
-            expect(await user.validateNip05(randomNip05)).toEqual(null);
         });
     });
 });

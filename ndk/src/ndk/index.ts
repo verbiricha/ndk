@@ -128,6 +128,13 @@ export class NDK extends EventEmitter {
         return Promise.allSettled(connections).then(() => {});
     }
 
+    public async disconnect(): Promise<void> {
+        if (this.outboxPool) {
+            await this.outboxPool.disconnect();
+        }
+        await this.pool.disconnect();
+    }
+
     /**
      * Get a NDKUser object
      *

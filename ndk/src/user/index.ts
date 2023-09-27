@@ -225,7 +225,9 @@ export class NDKUser {
                 relayList.writeRelayUrls = Array.from(writeRelays);
 
                 return relayList;
-            } catch (e) {}
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         return undefined;

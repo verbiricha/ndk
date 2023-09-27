@@ -53,12 +53,12 @@ export class NDKPool extends EventEmitter {
      * @param relay - The relay to add to the pool.
      * @param removeIfUnusedAfter - The time in milliseconds to wait before removing the relay from the pool after it is no longer used.
      */
-    public useTemporaryRelay(relay: NDKRelay, removeIfUnusedAfter = 600000) {
+    public async useTemporaryRelay(relay: NDKRelay, removeIfUnusedAfter = 600000) {
         const relayAlreadyInPool = this.relays.has(relay.url);
 
         // check if the relay is already in the pool
         if (!relayAlreadyInPool) {
-            this.addRelay(relay);
+            await this.addRelay(relay);
         }
 
         // check if the relay already has a disconnecting timer
@@ -86,7 +86,7 @@ export class NDKPool extends EventEmitter {
      * @param relay - The relay to add to the pool.
      * @param connect - Whether or not to connect to the relay.
      */
-    public addRelay(relay: NDKRelay, connect = true) {
+    public async addRelay(relay: NDKRelay, connect = true) {
         const relayUrl = relay.url;
 
         // check if the relay is blacklisted
@@ -102,7 +102,7 @@ export class NDKPool extends EventEmitter {
         this.relays.set(relayUrl, relay);
 
         if (connect) {
-            relay.connect();
+            return relay.connect();
         }
     }
 
@@ -111,10 +111,10 @@ export class NDKPool extends EventEmitter {
      * @param relayUrl - The URL of the relay to remove.
      * @returns {boolean} True if the relay was removed, false if it was not found.
      */
-    public removeRelay(relayUrl: string): boolean {
+    public async removeRelay(relayUrl: string): Promise<boolean> {
         const relay = this.relays.get(relayUrl);
         if (relay) {
-            relay.disconnect();
+            await relay.disconnect();
             this.relays.delete(relayUrl);
             this.emit("relay:disconnect", relay);
             return true;
@@ -204,6 +204,22 @@ export class NDKPool extends EventEmitter {
         }
 
         await Promise.all(promises);
+    }
+
+    /**
+     *
+     * Disconnect from relays.
+     *
+     */
+    public async disconnect(): Promise<void> {
+        this.debug(`Disconnecting from ${this.relays.size} relays`);
+
+        const promises = [];
+        for (const relay of this.relays.values()) {
+            promises.push(this.removeRelay(relay.url));
+        }
+
+        await Promise.allSettled(promises);
     }
 
     private checkOnFlappingRelays() {
